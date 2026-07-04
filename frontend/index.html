@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Domino 2v2</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+        .board { min-height: 150px; background: #2c3e50; color: white; margin: 10px 0; padding: 10px; }
+        .hand { display: flex; gap: 5px; }
+        .tile { border: 1px solid #ccc; padding: 10px; cursor: pointer; background: white; color: black; }
+    </style>
+</head>
+<body>
+
+    <h2>Xal: <span id="scores">A: 0 | B: 0</span></h2>
+    <div id="turn-indicator">Oyunçular gözlənilir...</div>
+    
+    <div class="board" id="board">Masadakı daşlar burada görünəcək</div>
+    
+    <div class="hand" id="my-hand"></div>
+    <button id="pass-btn" style="margin-top:20px; display:none;">Pass Get (Məndə daş yoxdur)</button>
+
+    <script src="app.js"></script>
+</body>
+</html>
