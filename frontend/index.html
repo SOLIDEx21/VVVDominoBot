@@ -3,25 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Domino 2v2</title>
+    <title>Domino 2v2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
-        .board { min-height: 150px; background: #2c3e50; color: white; margin: 10px 0; padding: 10px; }
-        .hand { display: flex; gap: 5px; }
-        .tile { border: 1px solid #ccc; padding: 10px; cursor: pointer; background: white; color: black; }
+        /* Telegram Mövzu Rəngləri ilə Avtomatik Uyğunlaşma */
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #1c1c1d);
+            --text-color: var(--tg-theme-text-color, #ffffff);
+            --btn-color: var(--tg-theme-button-color, #3390ec);
+            --btn-text: var(--tg-theme-button-text-color, #ffffff);
+            --hint-color: var(--tg-theme-hint-color, #707579);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body { background-color: var(--bg-color); color: var(--text-color); overflow: hidden; }
+
+        /* Ekran Keçidləri (SPA Məntiqi) */
+        .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.4s ease; }
+        .screen.active { display: flex; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- MENYU EKRANI --- */
+        .profile-container { text-align: center; margin-bottom: 40px; }
+        .avatar { width: 90px; height: 90px; background: var(--btn-color); color: var(--btn-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(51, 144, 236, 0.3); }
+        .welcome-text { font-size: 22px; font-weight: 600; margin-bottom: 5px; }
+        .stats-text { font-size: 14px; color: var(--hint-color); }
+
+        .menu-buttons { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 15px; }
+        .btn { padding: 16px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background-color: var(--btn-color); color: var(--btn-text); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .btn-secondary { background-color: var(--secondary-bg); color: var(--text-color); }
+
+        /* --- OYUN EKRANI --- */
+        .top-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--secondary-bg); border-radius: 12px; margin-bottom: 20px; position: absolute; top: 10px; left: 0; right: 0; width: calc(100% - 20px); margin: 0 auto; }
+        .score-box { font-weight: bold; font-size: 16px; }
+        .turn-badge { background: var(--btn-color); padding: 5px 12px; border-radius: 20px; font-size: 12px; color: var(--btn-text); }
+
+        .board { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; background: url('https://www.transparenttextures.com/patterns/cubes.png'), var(--secondary-bg); border-radius: 16px; margin-top: 70px; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.3); position: relative; }
+        
+        .hand-container { width: 100%; padding: 15px; background: var(--secondary-bg); border-radius: 16px 16px 0 0; position: absolute; bottom: 0; left: 0; }
+        .hand { display: flex; gap: 8px; justify-content: center; overflow-x: auto; padding-bottom: 5px; }
+        
+        .tile { width: 40px; height: 80px; background: white; color: black; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 8px 0; font-weight: bold; font-size: 18px; box-shadow: 1px 2px 5px rgba(0,0,0,0.3); cursor: pointer; }
+        .tile .line { width: 80%; height: 2px; background: black; }
     </style>
 </head>
 <body>
 
-    <h2>Xal: <span id="scores">A: 0 | B: 0</span></h2>
-    <div id="turn-indicator">Oyunçular gözlənilir...</div>
-    
-    <div class="board" id="board">Masadakı daşlar burada görünəcək</div>
-    
-    <div class="hand" id="my-hand"></div>
-    <button id="pass-btn" style="margin-top:20px; display:none;">Pass Get (Məndə daş yoxdur)</button>
+    <div id="menu-screen" class="screen active">
+        <div class="profile-container">
+            <div class="avatar" id="user-avatar">?</div>
+            <div class="welcome-text">Salam, <span id="user-name">Oyunçu</span>!</div>
+            <div class="stats-text">Ümumi xal: 0 | Qələbə: 0</div>
+        </div>
+
+        <div class="menu-buttons">
+            <button class="btn btn-primary" id="play-btn">
+                <i class="fa-solid fa-play"></i> Oyuna Başla (2v2)
+            </button>
+            <button class="btn btn-secondary" id="rules-btn">
+                <i class="fa-solid fa-book"></i> Qaydalar
+            </button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="top-bar">
+            <div class="score-box">🛡 Komanda A: <span id="score-a">0</span></div>
+            <div class="turn-badge" id="turn-indicator">Gözlənilir...</div>
+            <div class="score-box">⚔️ Komanda B: <span id="score-b">0</span></div>
+        </div>
+
+        <div class="board" id="board">
+            <span style="color: var(--hint-color);">Masadakı daşlar</span>
+        </div>
+
+        <div class="hand-container">
+            <div class="hand" id="my-hand"></div>
+            <button class="btn btn-secondary" id="pass-btn" style="width: 100%; margin-top: 10px; display: none;">
+                <i class="fa-solid fa-forward-step"></i> Pas Get
+            </button>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
